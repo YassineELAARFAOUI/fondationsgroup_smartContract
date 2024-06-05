@@ -51,7 +51,8 @@ if (!(foundation.status())) {
         uint256 donationAmount = msg.value; //montant Eth envoyé en wei
         uint256 ownerAmount = (donationAmount * ratio) / 100;
         foundation.AddDonations(msg.sender, donationAmount);
-        payable(owner).transfer(ownerAmount); 
+        payable(owner).transfer(ownerAmount);
+        payable(fondationUnitaire).transfer(address(this).balance); 
 }  
 function reedemMere(address foundtionUniatire) public  payable  {
      fondtionUniatire foundation = fondtionUniatire(foundtionUniatire);

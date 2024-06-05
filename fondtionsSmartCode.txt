@@ -1,0 +1,94 @@
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >=0.8.2 <0.9.0;
+
+/**
+ * @title Storage
+ * @dev Store & retrieve value in a variable
+ * @custom:dev-run-script ./scripts/deploy_with_ethers.ts
+ */
+contract fondationsManagement {
+    uint8 public constant ratio =5;
+    address public owner;
+    //constructeeur pour initialiser notre smart contract 
+    constructor(address _owner){
+    owner =_owner;
+}
+    //create a  tableau des fondtion  
+    address[] public fondations;
+     ////////////////////////////recupertion de nombre des fondations dans smart contract globale
+    function nbr_Fondations() public view returns(uint256){
+        return fondations.length;
+    }
+     //avoir le nombre des donation pour chaque fondation
+     function nbr_donationsmere(address foundtionUniatire) public view returns(uint256){
+        fondtionUniatire foundation = fondtionUniatire(foundtionUniatire);
+        return foundation.nbr_donationsFils();
+    }
+   
+    
+
+//pour la creation de smart contract unitaire 
+  function createSmartContractFondationUnitaire(address _owner,address _receipient,uint256 _seuil) public payable {
+    fondtionUniatire  newfondtionUniatire = new fondtionUniatire(_owner,_receipient,_seuil);
+    fondations.push(address(newfondtionUniatire));
+
+}
+//affichage d'ensemble de information de  smart contract
+function afficherInfoFondtionUnitaire(address fondationUnitaire) public view  returns (address,address,uint256,uint256,bool){
+     fondtionUniatire foundation = fondtionUniatire(fondationUnitaire);
+     return (foundation.owner(), foundation.receipient(),address(foundation).balance,foundation.seuil(),foundation.status());
+}
+//donate action
+function donate (address fondationUnitaire  ) public payable {
+   fondtionUniatire foundation = fondtionUniatire(fondationUnitaire); 
+if (!(foundation.status())) {
+            revert("Le contrat n'est plus actif"); // revert transaction with an error message
+        }
+        if(foundation.donations(msg.sender)==0)
+            foundation.AddDonaters(msg.sender);
+        //require(status, "Le contrat n'est plus actif"); //il faut que le contract soit tjrs actif
+        uint256 donationAmount = msg.value; //montant Eth envoyé en wei
+        uint256 ownerAmount = (donationAmount * ratio) / 100;
+        foundation.AddDonations(msg.sender, donationAmount);
+        payable(owner).transfer(ownerAmount); 
+}  
+function reedemMere(address foundtionUniatire) public  payable  {
+     fondtionUniatire foundation = fondtionUniatire(foundtionUniatire);
+        return foundation.reedemFils();
+} 
+
+}
+//c'est la smart contract unitaire 
+contract fondtionUniatire{
+        address public owner;
+        address public receipient;
+        uint256 public seuil;
+        address[] public donaters;
+        mapping(address => uint256) public donations;
+        bool  public status ;
+        constructor(address _owner,address _receipient,uint256 _seuil){
+         owner =_owner;
+         receipient =_receipient;
+         seuil =_seuil;
+          status =true;
+     }
+     //function for add new donaters
+     function AddDonaters(address newDonter) public  {
+         donaters.push(newDonter);
+     }
+     function AddDonations(address donater,uint256 donationAmount) public {
+        donations[donater] += donationAmount; //mapping entre donater et le montant de don
+     }
+     //avoir le nombre des donters
+     function nbr_donationsFils() public view returns(uint256){
+        return donaters.length;
+    }
+    //reedem fils 
+    function reedemFils() public payable {
+        require(address(this).balance >= seuil, "Seuil non atteint"); //si el solde accumulé est encore infér au seuil, on ne fait pas le transfert à l'association
+        require(status, "Le contrat n'est plus actif");
+        payable(receipient).transfer(address(this).balance);
+        status = false; // Désactiver le contrat*
+        }
+}
